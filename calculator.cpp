@@ -1,28 +1,8 @@
 #include <iostream>
 #include "std_lib_facilities.h"
+#include "calculator.hpp"
 
 using namespace std;
-
-class Token{
-    private:
-        char kind;
-        double value;
-    public:
-        Token(char k) : kind(k), value(0) {}
-        Token(char k, double v) : kind(k), value(v) {}
-        char getKind() { return kind; }
-        double getValue() { return value; }  
-};
-
-class TokenStream{
-    private:
-        bool full;
-        Token buffer;
-    public:
-        TokenStream(); // token stream that read from cin
-        Token getToken();  // get a token
-        void putback(Token t); // put a token back
-};
 
 TokenStream::TokenStream(): full(false), buffer(0) {}
 
@@ -45,7 +25,9 @@ Token TokenStream::getToken(){
     cin >> ch; // not that >> skips whitespace (space, newline, tab...)
     switch (ch){
         case ';':
+        case '!':
         case 'q':
+        case '{': case '}':
         case '(': case ')': case '+': case '-': case '*': case '/': 
             return Token(ch);     // let each character represents itself
         case '.':
@@ -62,35 +44,11 @@ Token TokenStream::getToken(){
     } 
 }
 
-double expression();       // read and evaluate an expression
-double term();             // read and evaluate a term
-double primary();          // read and evaluate a primary
+int fact(int n);
 
 TokenStream ts;
 
-int main(){
-    try{
-        double val = 0;
-        while(cin){
-            Token t = ts.getToken();
-            if(t.getKind() == 'q') break; // 'q' for quit
-            if(t.getKind() == ';') // ';' for print
-                cout << "=" << val <<'\n';
-            else
-                ts.putback(t);
-            val = expression();
-        }
-        return 0;
-    }catch(exception& e){
-        cerr << e.what() << endl;
-        return 1;
-    }catch(...){
-        cerr << "Exception..." << endl;
-        return 2;
-    }   
-}
-
-double expression(){
+double expression(){ // read and evaluate an expression
     double left = term();       // read and evaluate a term
     Token t = ts.getToken();       // get the next token
     while(true){
@@ -109,17 +67,17 @@ double expression(){
     } 
 }
 double term(){
-    double left = primary(); // read and evaluate a primary
+    double left = factorial(); // read and evaluate a primary
     Token t = ts.getToken();    // get the next token
     while(true){
         switch (t.getKind()){
             case '*':
-                left *= primary();
+                left *= factorial();
                 t = ts.getToken();
             break;
             case '/':
                 {
-                    double d = primary();
+                    double d = factorial();
                     if(d == 0) error("Zero division");
                     left /= d;
                     t = ts.getToken();
@@ -131,10 +89,35 @@ double term(){
         }
     }
 }
+double factorial(){
+    double left = primary();
+    Token t = ts.getToken();
+    while(true){
+        switch (t.getKind())
+        {
+            case '!':                
+                left = fact(int(left));
+                return left;
+            break;
+        
+            default:
+                ts.putback(t);
+                return left;
+            break;
+        }
+    }
 
+}
 double primary(){
     Token t = ts.getToken();
     switch (t.getKind()){
+        case '{':
+            {
+                double d = expression();
+                t = ts.getToken();
+                if((t.getKind()) != '}') error("'}' expected");
+                return d;
+            }
         case '(':
             {
                 double d = expression();
@@ -147,4 +130,9 @@ double primary(){
         default:
             error("primary expected");
     }
+}
+
+int fact(int n){
+    if(n == 0) return 1;
+    return n*fact(n-1);
 }
