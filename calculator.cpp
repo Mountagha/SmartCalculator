@@ -46,8 +46,6 @@ Token TokenStream::getToken(){
 
 int fact(int n);
 
-TokenStream ts;
-
 double expression(){ // read and evaluate an expression
     double left = term();       // read and evaluate a term
     Token t = ts.getToken();       // get the next token
@@ -127,6 +125,10 @@ double primary(){
             }
         case '8':
             return t.getValue();
+        case '-':
+            return -primary();
+        case '+':
+            return primary();
         default:
             error("primary expected");
     }

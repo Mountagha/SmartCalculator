@@ -27,4 +27,6 @@ double term();             // read and evaluate a term
 double factorial();        // read and evaluate a factorial (the readed expression may not be a fact)
 double primary();          // read and evaluate a primary
 
+extern TokenStream ts;
+
 #endif
