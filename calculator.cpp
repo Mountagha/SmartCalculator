@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cmath>
 #include "std_lib_facilities.h"
 #include "calculator.hpp"
 
@@ -24,11 +25,18 @@ Token TokenStream::getToken(){
     char ch;
     cin >> ch; // not that >> skips whitespace (space, newline, tab...)
     switch (ch){
-        case ';':
+        case print:
+        case quit:
         case '!':
-        case 'q':
-        case '{': case '}':
-        case '(': case ')': case '+': case '-': case '*': case '/': 
+        case '{': 
+        case '}':
+        case '(': 
+        case ')': 
+        case '+': 
+        case '-': 
+        case '*': 
+        case '/': 
+        case '%': 
             return Token(ch);     // let each character represents itself
         case '.':
         case '1': case '2': case '3': case '4': case '5': case '6':
@@ -37,11 +45,28 @@ Token TokenStream::getToken(){
                 cin.putback(ch);    // put digit back into the input stream
                 double val;
                 cin >> val;         // read a floating point number
-                return Token('8', val);
+                return Token(number, val);
             }
         default:
             error("Bad token");
     } 
+}
+
+void TokenStream::ignore(char c){
+    // c is the kind of the Token
+
+    // first look into the buffer
+    if(full && c==buffer.getKind()){
+        full = false;
+        return;
+    }
+    full = false;
+    // now search input:
+    char ch = 0;
+    while(cin>>ch){
+        if(ch==c)
+            return;
+    }
 }
 
 int fact(int n);
@@ -78,6 +103,14 @@ double term(){
                     double d = factorial();
                     if(d == 0) error("Zero division");
                     left /= d;
+                    t = ts.getToken();
+                    break;
+                }
+            case '%':
+                {
+                    double d = factorial();
+                    if(d==0) error("Zero division");
+                    left = fmod(left, d);
                     t = ts.getToken();
                     break;
                 }
@@ -123,7 +156,7 @@ double primary(){
                 if((t.getKind()) != ')') error("')' expected");
                 return d;
             }
-        case '8':
+        case number:
             return t.getValue();
         case '-':
             return -primary();

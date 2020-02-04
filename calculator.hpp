@@ -14,12 +14,13 @@ class Token{
 
 class TokenStream{
     private:
-        bool full;
-        Token buffer;
+        bool full; // is there a token in the buffer
+        Token buffer; // here is where we keep a token put back using putback
     public:
         TokenStream(); // token stream that read from cin
         Token getToken();  // get a token
         void putback(Token t); // put a token back
+        void ignore(char c); // discard characters up to and including c
 };
 
 double expression();       
@@ -28,5 +29,8 @@ double factorial();        // read and evaluate a factorial (the readed expressi
 double primary();          // read and evaluate a primary
 
 extern TokenStream ts;
+const char number = '8';
+const char quit = 'q';
+const char print = ';';
 
 #endif
