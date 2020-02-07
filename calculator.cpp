@@ -5,6 +5,8 @@
 
 using namespace std;
 
+vector<Variable> var_table;
+
 TokenStream::TokenStream(): full(false), buffer(0) {}
 
 void TokenStream::putback(Token t){
@@ -48,6 +50,13 @@ Token TokenStream::getToken(){
                 return Token(number, val);
             }
         default:
+            if(isalpha(ch)){
+                cin.putback(ch);
+                string s;
+                cin >> s;
+                if(s == declkey) return Token(let); // declaration keyword
+                return Token{name, s};
+            }
             error("Bad token");
     } 
 }
@@ -68,8 +77,25 @@ void TokenStream::ignore(char c){
             return;
     }
 }
+Variable::Variable(string var, double val): name(var), value(val) {} 
 
 int fact(int n);
+
+double declaration(){
+    // assume we seen "let"
+    // handle name = expression
+    // declare a variable called "name" with the value "expression"
+    Token t = ts.getToken();
+    if(t.getKind() != name) error("name expected in the decalaration");
+    string var_name = t.getName();
+
+    Token t2 = ts.getToken();
+    if(t.getKind() != '=') error("= missing in declaration of ", var_name);
+
+    double d = expression();
+    define_name(var_name, d);
+    return d;
+}
 
 double expression(){ // read and evaluate an expression
     double left = term();       // read and evaluate a term
@@ -165,6 +191,39 @@ double primary(){
         default:
             error("primary expected");
     }
+}
+
+double get_value(string s){
+    // return the value of the Variable named s
+    for(const Variable& v: var_table){
+        if(v.name == s) return v.value;
+    }
+    error("get: undefined variable", s);
+}
+
+void set_value(string s, double d){
+    // set the variable named s to d
+    for(Variable& v: var_table)
+        if(v.name == s){
+            v.value = d;
+            return;
+        }
+        error("get undefined variable", s);
+}
+
+bool is_declared(string s){
+    // is variable s already declared
+    for(const auto& v: var_table){
+        if(v.name == s) return true;
+    }
+    return false;
+}
+
+double define_name(string var, double val){
+    // add (var, val) to table_var
+    if(is_declared(var)) error(var, "declared twice");
+    var_table.push_back(Variable(var, val));
+    return val;
 }
 
 int fact(int n){

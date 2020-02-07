@@ -7,10 +7,17 @@ Simple calculator
     This program implements a basic expression calculator.
     Input from cin; output to cout.
 The grammar for input is:
-Statement:
-    Expression
+Calculation:
+    Statement
     Print
     Quit
+Statement:
+    Declaration
+    Expression
+Declaration:
+    "let" Name "=" Expression
+Name:
+    String
 Print:
     ;
 Quit:
@@ -45,6 +52,17 @@ void clean_up_mess(){
     ts.ignore(print);
 }
 
+double statement(){
+    Token t = ts.getToken();
+    switch (t.getKind())
+    {
+    case let:
+        return declaration();
+    default:
+        ts.putback(t);
+        return expression();
+    }
+}
 void calculate(){
     
     const string prompt = "> ";
@@ -57,7 +75,7 @@ void calculate(){
             if(t.getKind() == quit)  // 'q' for quit
                 return ;
             ts.putback(t);
-            cout << result << expression() <<'\n';
+            cout << result << statement() <<'\n';
         }catch(exception& e){
             cerr << e.what() << '\n';
             clean_up_mess();
