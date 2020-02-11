@@ -1,8 +1,11 @@
 #include <iostream>
+#include <cmath>
 #include "std_lib_facilities.h"
 #include "calculator.hpp"
 
 using namespace std;
+
+// vector<Variable> var_table;
 
 TokenStream::TokenStream(): full(false), buffer(0) {}
 
@@ -24,11 +27,19 @@ Token TokenStream::getToken(){
     char ch;
     cin >> ch; // not that >> skips whitespace (space, newline, tab...)
     switch (ch){
-        case ';':
+        case print:
+        case quit:
         case '!':
-        case 'q':
-        case '{': case '}':
-        case '(': case ')': case '+': case '-': case '*': case '/': 
+        case '{': 
+        case '}':
+        case '(': 
+        case ')': 
+        case '+': 
+        case '-': 
+        case '*': 
+        case '/': 
+        case '%': 
+        case '=':
             return Token(ch);     // let each character represents itself
         case '.':
         case '1': case '2': case '3': case '4': case '5': case '6':
@@ -37,14 +48,76 @@ Token TokenStream::getToken(){
                 cin.putback(ch);    // put digit back into the input stream
                 double val;
                 cin >> val;         // read a floating point number
-                return Token('8', val);
+                return Token(number, val);
             }
         default:
+            if(isalpha(ch)){
+                string s;
+                s += ch;
+                while(cin.get(ch) && (isalpha(ch) || isdigit(ch))) s += ch;
+                cin.putback(ch);
+                if(s == declkey) return Token{let}; // declaration keyword
+                return Token{name, s};
+            }
             error("Bad token");
     } 
 }
 
-int fact(int n);
+void TokenStream::ignore(char c){
+    // c is the kind of the Token
+
+    // first look into the buffer
+    if(full && c==buffer.getKind()){
+        full = false;
+        return;
+    }
+    full = false;
+    // now search input:
+    char ch = 0;
+    while(cin>>ch){
+        if(ch==c)
+            return;
+    }
+}
+Variable::Variable(string var, double val): name(var), value(val) {} 
+
+int fact(int n); // don't need to expose this function into .h files
+// since it won't be call by the user
+
+double get_value(string s){
+    // return the value of the Variable named s
+    for(const Variable& v: var_table){
+        if(v.name == s)
+            return v.value;
+    }
+    error("get: undefined variable ", s);
+}
+
+void set_value(string s, double d){
+    // set the variable named s to d
+    for(Variable& v: var_table)
+        if(v.name == s){
+            v.value = d;
+            return;
+        }
+        error("get undefined variable ", s);
+}
+
+double declaration(){
+    // assume we seen "let"
+    // handle name = expression
+    // declare a variable called "name" with the value "expression"
+    Token t = ts.getToken();
+    if(t.getKind() != name) error("name expected in the decalaration");
+    string var_name = t.getName();
+
+    Token t2 = ts.getToken();
+    if(t2.getKind() != '=') error("= missing in declaration of ", var_name);
+
+    double d = expression();
+    define_name(var_name, d);
+    return d;
+}
 
 double expression(){ // read and evaluate an expression
     double left = term();       // read and evaluate a term
@@ -78,6 +151,14 @@ double term(){
                     double d = factorial();
                     if(d == 0) error("Zero division");
                     left /= d;
+                    t = ts.getToken();
+                    break;
+                }
+            case '%':
+                {
+                    double d = factorial();
+                    if(d==0) error("Zero division");
+                    left = fmod(left, d);
                     t = ts.getToken();
                     break;
                 }
@@ -123,8 +204,10 @@ double primary(){
                 if((t.getKind()) != ')') error("')' expected");
                 return d;
             }
-        case '8':
+        case number:
             return t.getValue();
+        case name:
+            return get_value(t.getName());
         case '-':
             return -primary();
         case '+':
@@ -132,6 +215,21 @@ double primary(){
         default:
             error("primary expected");
     }
+}
+
+bool is_declared(string s){
+    // is variable s already declared
+    for(const auto& v: var_table){
+        if(v.name == s) return true;
+    }
+    return false;
+}
+
+double define_name(string var, double val){
+    // add (var, val) to table_var
+    if(is_declared(var)) error(var, " declared twice");
+    var_table.push_back(Variable(var, val));
+    return val;
 }
 
 int fact(int n){
