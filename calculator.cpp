@@ -5,7 +5,7 @@
 
 using namespace std;
 
-vector<Variable> var_table;
+// vector<Variable> var_table;
 
 TokenStream::TokenStream(): full(false), buffer(0) {}
 
@@ -39,6 +39,7 @@ Token TokenStream::getToken(){
         case '*': 
         case '/': 
         case '%': 
+        case '=':
             return Token(ch);     // let each character represents itself
         case '.':
         case '1': case '2': case '3': case '4': case '5': case '6':
@@ -51,10 +52,11 @@ Token TokenStream::getToken(){
             }
         default:
             if(isalpha(ch)){
-                cin.putback(ch);
                 string s;
-                cin >> s;
-                if(s == declkey) return Token(let); // declaration keyword
+                s += ch;
+                while(cin.get(ch) && (isalpha(ch) || isdigit(ch))) s += ch;
+                cin.putback(ch);
+                if(s == declkey) return Token{let}; // declaration keyword
                 return Token{name, s};
             }
             error("Bad token");
@@ -79,7 +81,27 @@ void TokenStream::ignore(char c){
 }
 Variable::Variable(string var, double val): name(var), value(val) {} 
 
-int fact(int n);
+int fact(int n); // don't need to expose this function into .h files
+// since it won't be call by the user
+
+double get_value(string s){
+    // return the value of the Variable named s
+    for(const Variable& v: var_table){
+        if(v.name == s)
+            return v.value;
+    }
+    error("get: undefined variable ", s);
+}
+
+void set_value(string s, double d){
+    // set the variable named s to d
+    for(Variable& v: var_table)
+        if(v.name == s){
+            v.value = d;
+            return;
+        }
+        error("get undefined variable ", s);
+}
 
 double declaration(){
     // assume we seen "let"
@@ -90,7 +112,7 @@ double declaration(){
     string var_name = t.getName();
 
     Token t2 = ts.getToken();
-    if(t.getKind() != '=') error("= missing in declaration of ", var_name);
+    if(t2.getKind() != '=') error("= missing in declaration of ", var_name);
 
     double d = expression();
     define_name(var_name, d);
@@ -184,6 +206,8 @@ double primary(){
             }
         case number:
             return t.getValue();
+        case name:
+            return get_value(t.getName());
         case '-':
             return -primary();
         case '+':
@@ -191,24 +215,6 @@ double primary(){
         default:
             error("primary expected");
     }
-}
-
-double get_value(string s){
-    // return the value of the Variable named s
-    for(const Variable& v: var_table){
-        if(v.name == s) return v.value;
-    }
-    error("get: undefined variable", s);
-}
-
-void set_value(string s, double d){
-    // set the variable named s to d
-    for(Variable& v: var_table)
-        if(v.name == s){
-            v.value = d;
-            return;
-        }
-        error("get undefined variable", s);
 }
 
 bool is_declared(string s){
@@ -221,7 +227,7 @@ bool is_declared(string s){
 
 double define_name(string var, double val){
     // add (var, val) to table_var
-    if(is_declared(var)) error(var, "declared twice");
+    if(is_declared(var)) error(var, " declared twice");
     var_table.push_back(Variable(var, val));
     return val;
 }

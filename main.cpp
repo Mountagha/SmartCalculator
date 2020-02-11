@@ -47,6 +47,7 @@ Input comes from cin through the Token_stream called ts.
 */
 
 TokenStream ts;
+vector<Variable> var_table;
 
 void clean_up_mess(){
     ts.ignore(print);
@@ -84,6 +85,10 @@ void calculate(){
 }
 
 int main(){
+    // predefine names
+    define_name("pi", 3.1414926536);
+    define_name("e", 2.7182818284);
+    
     try{
         calculate();
         return 0;
